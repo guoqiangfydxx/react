@@ -3020,6 +3020,7 @@ function beginWork(
   }
 
   if (current !== null) {
+    // 组件更新时已经mount过，所以此时的current不为null
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
 
@@ -3222,6 +3223,7 @@ function beginWork(
       }
     }
   } else {
+    // 第一次渲染的时候current是空的
     didReceiveUpdate = false;
   }
 
@@ -3232,6 +3234,7 @@ function beginWork(
   // move this assignment out of the common path and into each branch.
   workInProgress.lanes = NoLanes;
 
+  // mount的时候根据tag的不同，创建不同的子Fiber节点
   switch (workInProgress.tag) {
     case IndeterminateComponent: {
       return mountIndeterminateComponent(

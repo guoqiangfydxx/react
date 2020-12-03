@@ -699,6 +699,7 @@ function completeWork(
       const rootContainerInstance = getRootHostContainer();
       const type = workInProgress.type;
       if (current !== null && workInProgress.stateNode != null) {
+        // update的情况
         updateHostComponent(
           current,
           workInProgress,
@@ -711,6 +712,7 @@ function completeWork(
           markRef(workInProgress);
         }
       } else {
+        // mount的情况
         if (!newProps) {
           invariant(
             workInProgress.stateNode !== null,
@@ -742,6 +744,7 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
+          // 为fiber节点创建对应的dom节点
           const instance = createInstance(
             type,
             newProps,
@@ -749,9 +752,9 @@ function completeWork(
             currentHostContext,
             workInProgress,
           );
-
+            // 将所有的子孙dom节点全部插入到刚生成的dom节点中
           appendAllChildren(instance, workInProgress, false, false);
-
+            // 将生产的dom节点赋值给stateNode
           workInProgress.stateNode = instance;
 
           // Certain renderers require commit-time effects for initial mount.

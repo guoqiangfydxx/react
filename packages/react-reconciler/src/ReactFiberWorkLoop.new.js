@@ -1934,6 +1934,7 @@ function commitRootImpl(root, renderPriorityLevel) {
     // no more pending effects.
     // TODO: Might be better if `flushPassiveEffects` did not automatically
     // flush synchronous work at the end, to avoid factoring hazards like this.
+    // 触发useEffect和其他的同步任务，由于这些任务可能会触发新的渲染，所以这里要一直遍历直到没有任务
     flushPassiveEffects();
   } while (rootWithPendingPassiveEffects !== null);
   flushRenderPhaseStrictModeWarningsInDEV();
@@ -2028,6 +2029,7 @@ function commitRootImpl(root, renderPriorityLevel) {
     firstEffect = finishedWork.firstEffect;
   }
 
+  // 上面的代码是执行dom前的操作
   if (firstEffect !== null) {
     let previousLanePriority;
     if (decoupleUpdatePriorityFromScheduler) {
