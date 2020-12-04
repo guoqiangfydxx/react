@@ -252,6 +252,7 @@ function warnOnFunctionType(returnFiber: Fiber) {
 // live outside of this function.
 function ChildReconciler(shouldTrackSideEffects) {
   function deleteChild(returnFiber: Fiber, childToDelete: Fiber): void {
+    // 将childFiber挂载到parentFiber中的effect List上面，然后给childFiber的flag置为deletion，这样的话最终这个待删除的fiber节点就被挂载到了父节点的effectList上面去了，等待后面执行这个effectList
     if (!shouldTrackSideEffects) {
       // Noop.
       return;
@@ -1097,6 +1098,7 @@ function ChildReconciler(shouldTrackSideEffects) {
   ): Fiber {
     const key = element.key;
     let child = currentFirstChild;
+    // 首先判断是是否在对应的dom节点
     while (child !== null) {
       // TODO: If key === null and child.key === null, then this only applies to
       // the first item in the list.
@@ -1124,6 +1126,7 @@ function ChildReconciler(shouldTrackSideEffects) {
                 : false)
             ) {
               deleteRemainingChildren(returnFiber, child.sibling);
+              // 如果发现新老Fiber对应的type和key都一样的话，那么就复用之前的fiber，不需要重新创建一个新的Fiber
               const existing = useFiber(child, element.props);
               existing.ref = coerceRef(returnFiber, child, element);
               existing.return = returnFiber;
@@ -1137,6 +1140,7 @@ function ChildReconciler(shouldTrackSideEffects) {
           }
         }
         // Didn't match.
+        // 如果发现当前的最新的fiber节点的key和之前的节点的key值是一样的，但是type不一样，此时说明该节点变了，而且其他的兄弟节点也没有机会参与复用了，所以需要将剩下的节点也全部打上删除的标记
         deleteRemainingChildren(returnFiber, child);
         break;
       } else {
@@ -1145,6 +1149,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       child = child.sibling;
     }
 
+    // 说明之前没有创建过对应的dom节点，此时要新建Fiber节点
     if (element.type === REACT_FRAGMENT_TYPE) {
       const created = createFiberFromFragment(
         element.props.children,

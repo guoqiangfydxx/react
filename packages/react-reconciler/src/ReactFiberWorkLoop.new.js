@@ -2358,6 +2358,7 @@ function commitBeforeMutationEffects() {
 
 function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
   // TODO: Should probably move the bulk of this function to commitWork.
+  // 遍历effectList
   while (nextEffect !== null) {
     setCurrentDebugFiberInDEV(nextEffect);
 
@@ -2388,6 +2389,7 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
     const primaryFlags = flags & (Placement | Update | Deletion | Hydrating);
     switch (primaryFlags) {
       case Placement: {
+        // 插入dom
         commitPlacement(nextEffect);
         // Clear the "placement" from effect tag so that we know that this is
         // inserted, before any life-cycles like componentDidMount gets called.
@@ -2397,6 +2399,7 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
         break;
       }
       case PlacementAndUpdate: {
+        // 插入并更新dom
         // Placement
         commitPlacement(nextEffect);
         // Clear the "placement" from effect tag so that we know that this is
@@ -2421,11 +2424,13 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
         break;
       }
       case Update: {
+        // 更新dom
         const current = nextEffect.alternate;
         commitWork(current, nextEffect);
         break;
       }
       case Deletion: {
+        // 删除dom
         commitDeletion(root, nextEffect, renderPriorityLevel);
         break;
       }

@@ -1213,6 +1213,7 @@ function commitPlacement(finishedWork: Fiber): void {
   // Note: these two variables *must* always be updated together.
   let parent;
   let isContainer;
+  // 父级dom节点
   const parentStateNode = parentFiber.stateNode;
   switch (parentFiber.tag) {
     case HostComponent:
