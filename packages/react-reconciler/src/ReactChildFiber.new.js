@@ -767,6 +767,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     let lastPlacedIndex = 0;
     let newIdx = 0;
     let nextOldFiber = null;
+    // 第一轮遍历
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
       if (oldFiber.index > newIdx) {
         nextOldFiber = oldFiber;
@@ -1074,6 +1075,7 @@ function ChildReconciler(shouldTrackSideEffects) {
   ): Fiber {
     // There's no need to check for keys on text nodes since we don't have a
     // way to define them.
+    // 文本节点不需要判断key是否相同，因为react中无法在文本节点上定义key值
     if (currentFirstChild !== null && currentFirstChild.tag === HostText) {
       // We already have an existing node so let's just update it and delete
       // the rest.
@@ -1184,20 +1186,24 @@ function ChildReconciler(shouldTrackSideEffects) {
           child.stateNode.containerInfo === portal.containerInfo &&
           child.stateNode.implementation === portal.implementation
         ) {
+          // key相同且tag也相同的情况下复用之前的fiber
           deleteRemainingChildren(returnFiber, child.sibling);
           const existing = useFiber(child, portal.children || []);
           existing.return = returnFiber;
           return existing;
         } else {
+          // 可以相同，但是tag和containerInfo不相同的话，那么就说明当前的fiber不能被复用了，而且其他的fiber也失去了复用的机会了
           deleteRemainingChildren(returnFiber, child);
           break;
         }
       } else {
+        // 如果key不同，说明当前的fiber不能被复用，但是还有其他的fiber没有被遍历，所以这里只是标记删除当前fiber
         deleteChild(returnFiber, child);
       }
       child = child.sibling;
     }
 
+    // 这里是初次mount的情况
     const created = createFiberFromPortal(portal, returnFiber.mode, lanes);
     created.return = returnFiber;
     return created;
