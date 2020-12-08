@@ -333,10 +333,12 @@ function ChildReconciler(shouldTrackSideEffects) {
       return lastPlacedIndex;
     }
     const current = newFiber.alternate;
+    // 节点往后移动而不往前移动
     if (current !== null) {
       const oldIndex = current.index;
       if (oldIndex < lastPlacedIndex) {
         // This is a move.
+        // 节点之前插入的位置索引小于本次更新需要插入到位置索引，所以需要移动
         newFiber.flags = Placement;
         return lastPlacedIndex;
       } else {
@@ -767,6 +769,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     let lastPlacedIndex = 0;
     let newIdx = 0;
     let nextOldFiber = null;
+    // 这里是第一轮遍历,处理更新的节点
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
       if (oldFiber.index > newIdx) {
         nextOldFiber = oldFiber;
@@ -812,12 +815,14 @@ function ChildReconciler(shouldTrackSideEffects) {
       oldFiber = nextOldFiber;
     }
 
+    // newChildren被遍历完了，但是oldFiber还没有被遍历完，说明此时是有节点被删除了，需要标记一下剩下的节点为deletion
     if (newIdx === newChildren.length) {
       // We've reached the end of the new children. We can delete the rest.
       deleteRemainingChildren(returnFiber, oldFiber);
       return resultingFirstChild;
     }
 
+    // newChildren都已经遍历完了，但是oldFiber还没有遍历完，说明还有新加入的节点，意味着本次更新有新节点插入
     if (oldFiber === null) {
       // If we don't have any more existing children we can choose a fast path
       // since the rest will all be insertions.
@@ -838,9 +843,11 @@ function ChildReconciler(shouldTrackSideEffects) {
       return resultingFirstChild;
     }
 
+    // 为了快速的找到key对应的oldFiber，将oldFiber和key存入到一个map中
     // Add all children to a key map for quick lookups.
     const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
 
+    // 第二轮遍历，是为了处理剩下的不属于更新的节点
     // Keep scanning and use the map to restore deleted items as moves.
     for (; newIdx < newChildren.length; newIdx++) {
       const newFiber = updateFromMap(
