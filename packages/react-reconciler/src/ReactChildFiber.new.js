@@ -369,11 +369,13 @@ function ChildReconciler(shouldTrackSideEffects) {
   ) {
     if (current === null || current.tag !== HostText) {
       // Insert
+      // 凡是类似于createFiberFrom*的函数最终都是走入createFiber这个函数里面，只不过不同的创建函数传入的tag，props，mode不一样，而createFiber这个函数里面则是调用FiberNode这个构造函数来创建一个新的Fiber节点
       const created = createFiberFromText(textContent, returnFiber.mode, lanes);
       created.return = returnFiber;
       return created;
     } else {
       // Update
+      // useFiber就是复用之前的fiber节点，这里传入的第一个节点就是当前正在页面上展示的fiber，即oldFiber，在useFiber函数中会判断oldFiber对应的workInProgress，正在内存中的fiber；如果workInProgress存在的话，那么就oldFiber的type和props都赋值给workInProgress；如果没有的话那么就根据oldFiber的tag，props和type来创建一个新的Fiber节点，然后返回这个workInProgress
       const existing = useFiber(current, textContent);
       existing.return = returnFiber;
       return existing;
@@ -386,6 +388,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     element: ReactElement,
     lanes: Lanes,
   ): Fiber {
+     // 这里的逻辑也是和其他的update*函数的功能的是一致的，虽然函数名称是updateElement，但是实际上新增和修改都在这个函数里面包含了
     if (current !== null) {
       if (
         current.elementType === element.type ||
@@ -404,6 +407,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       }
     }
     // Insert
+    // 这里是创建一个React element的Fiber节点，但是React中对应的元素种类有很多，所以在这个函数中需要根据不同的元素类型来创建不同的Fiber节点。这里最终都会走进createFiber这个函数，只不过不同的函数会有不同的tag和props传入进去，来创建不同类型的Fiber节点
     const created = createFiberFromElement(element, returnFiber.mode, lanes);
     created.ref = coerceRef(returnFiber, current, element);
     created.return = returnFiber;
@@ -441,6 +445,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     lanes: Lanes,
     key: null | string,
   ): Fiber {
+     // 在这里也会判断oldFiber是否存在或者其tag是否为Fragment，如果都不符合的话，那么就是新增一个Fragment节点，否则的话就是复用之前的节点
     if (current === null || current.tag !== Fragment) {
       // Insert
       const created = createFiberFromFragment(
@@ -772,6 +777,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     // 这里是第一轮遍历,处理更新的节点
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
       if (oldFiber.index > newIdx) {
+        // 每一个fiber都有一个index， 表示在上一次更新中该fiber节点在children中对应的索引，如果这里发现新老fiber对应的索引不一样的话，那么至少说明老的fiber是不可以被复用的
         nextOldFiber = oldFiber;
         oldFiber = null;
       } else {
@@ -1227,6 +1233,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     // Handle top level unkeyed fragments as if they were arrays.
     // This leads to an ambiguity between <>{[...]}</> and <>...</>.
     // We treat the ambiguous cases above the same.
+    // currentFirstChild指的是当前正在显示在界面上的parentFiber的第一个子节点，其相对于本次协调来说就是oldFiber，而本次的结果就是最新的Fiber
     const isUnkeyedTopLevelFragment =
       typeof newChild === 'object' &&
       newChild !== null &&
