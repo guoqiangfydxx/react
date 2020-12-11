@@ -327,6 +327,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     lastPlacedIndex: number,
     newIndex: number,
   ): number {
+    // 这里的newFiber就是新创建的内存中的workInProgress；而newFiber.alternate则对应的是现在页面上展示的fiber，即oldFiber
     newFiber.index = newIndex;
     if (!shouldTrackSideEffects) {
       // Noop.
@@ -342,6 +343,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         newFiber.flags = Placement;
         return lastPlacedIndex;
       } else {
+        // 该节点不需要移动，并且要更新一下lastPlacedIndex
         // This item can stay in place.
         return oldIndex;
       }
@@ -388,7 +390,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     element: ReactElement,
     lanes: Lanes,
   ): Fiber {
-     // 这里的逻辑也是和其他的update*函数的功能的是一致的，虽然函数名称是updateElement，但是实际上新增和修改都在这个函数里面包含了
+    // 这里的逻辑也是和其他的update*函数的功能的是一致的，虽然函数名称是updateElement，但是实际上新增和修改都在这个函数里面包含了
     if (current !== null) {
       if (
         current.elementType === element.type ||
@@ -445,7 +447,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     lanes: Lanes,
     key: null | string,
   ): Fiber {
-     // 在这里也会判断oldFiber是否存在或者其tag是否为Fragment，如果都不符合的话，那么就是新增一个Fragment节点，否则的话就是复用之前的节点
+    // 在这里也会判断oldFiber是否存在或者其tag是否为Fragment，如果都不符合的话，那么就是新增一个Fragment节点，否则的话就是复用之前的节点
     if (current === null || current.tag !== Fragment) {
       // Insert
       const created = createFiberFromFragment(
@@ -609,6 +611,8 @@ function ChildReconciler(shouldTrackSideEffects) {
     return null;
   }
 
+  // updateFromMap和第一轮的updateSlot的区别在于，updateSlot中是直接把新老Fiber都传入进去了，直接根据key是否匹配来比较判断，而updateFromMap则是根据新Fiber的key值从map中读取对应的老的fiber，而且还有一个重要的不同点就是updateSlot中对应的oldFiber一定是存在的，才会走进对应的update*函数，而updateFromMap则不一样，其生成的fiber有可能是服用之前老的fiber也有可能是新建的一个fiber
+  // updateFromMap是以newChild为基准点来找老的fiber，如果找到了老的fiber，那么走useFiber复用fiber的逻辑，如果没有找到的话，那么就需要根据newChild的type或者tag来创建一个相同类型的fiber节点
   function updateFromMap(
     existingChildren: Map<string | number, Fiber>,
     returnFiber: Fiber,
@@ -789,6 +793,7 @@ function ChildReconciler(shouldTrackSideEffects) {
         newChildren[newIdx],
         lanes,
       );
+      // 在第一轮遍历的时候首先是按照index来遍历的，如果要是新老Fiber对应的index不一致的话，那么oldFiber就是为null，此时获取到的新的Fiber是根据key来匹配的，oldFiber为null，那么新的Fiber也会返回为null，此时如果新老fiber都是null的话就会终止本次的循环
       if (newFiber === null) {
         // TODO: This breaks on empty slots like null children. That's
         // unfortunate because it triggers the slow path all the time. We need
@@ -828,7 +833,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       return resultingFirstChild;
     }
 
-    // newChildren都已经遍历完了，但是oldFiber还没有遍历完，说明还有新加入的节点，意味着本次更新有新节点插入
+    //oldFiber都已经遍历完了，但是newChildren还没有遍历完，说明还有新加入的节点，意味着本次更新有新节点插入
     if (oldFiber === null) {
       // If we don't have any more existing children we can choose a fast path
       // since the rest will all be insertions.
@@ -853,7 +858,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     // Add all children to a key map for quick lookups.
     const existingChildren = mapRemainingChildren(returnFiber, oldFiber);
 
-    // 第二轮遍历，是为了处理剩下的不属于更新的节点
+    // 第二轮遍历，是为了处理剩下的不属于更新的节点, 走到这里说明本次有节点改变了位置，导致新老Fiber都没有遍历完
     // Keep scanning and use the map to restore deleted items as moves.
     for (; newIdx < newChildren.length; newIdx++) {
       const newFiber = updateFromMap(
