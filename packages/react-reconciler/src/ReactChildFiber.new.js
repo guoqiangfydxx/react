@@ -459,7 +459,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       created.return = returnFiber;
       return created;
     } else {
-      // Update
+      // Update， Fragment元素比较特殊有点，所以其唯一的props就是props.children，用于更新里面的元素节点
       const existing = useFiber(current, fragment);
       existing.return = returnFiber;
       return existing;
@@ -551,6 +551,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       // Text nodes don't have keys. If the previous node is implicitly keyed
       // we can continue to replace it without aborting even if it is not a text
       // node.
+      // 文本节点是没有key的，所以即使是oldFiber是存在的，那么key也是null；如果发现key不为null的话，那么就说明oldFiber是不可以复用的
       if (key !== null) {
         return null;
       }
@@ -590,12 +591,13 @@ function ChildReconciler(shouldTrackSideEffects) {
           }
         }
       }
-
+f
       if (isArray(newChild) || getIteratorFn(newChild)) {
         if (key !== null) {
           return null;
         }
 
+        // 数组在这里走的也是新建的逻辑
         return updateFragment(returnFiber, oldFiber, newChild, lanes, null);
       }
 
@@ -782,6 +784,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
       if (oldFiber.index > newIdx) {
         // 每一个fiber都有一个index， 表示在上一次更新中该fiber节点在children中对应的索引，如果这里发现新老fiber对应的索引不一样的话，那么至少说明老的fiber是不可以被复用的
+        // 第一轮遍历主要处理更新节点，如果仅仅是更新部分属性，那么新老fiber的index就肯定不会是发生变化的，所以才会判断如果index不一样的话，那么久说明老的Fiber直接就不可以复用了，直接将oldFiber置为了null
         nextOldFiber = oldFiber;
         oldFiber = null;
       } else {
