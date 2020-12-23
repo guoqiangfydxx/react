@@ -128,6 +128,7 @@ function createRootImpl(
       options.hydrationOptions != null &&
       options.hydrationOptions.mutableSources) ||
     null;
+  // 返回的是一个rootFiber---fiber节点，读取root.current就可以获取到项目的根节点
   const root = createContainer(container, tag, hydrate, hydrationCallbacks);
   markContainerAsRoot(root.current, container);
 

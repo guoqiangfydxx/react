@@ -314,7 +314,9 @@ export function updateContainer(
     update.callback = callback;
   }
 
+  // 将生成的update加入到updateQueue
   enqueueUpdate(current, update);
+  // 调度
   scheduleUpdateOnFiber(current, lane, eventTime);
 
   return lane;
