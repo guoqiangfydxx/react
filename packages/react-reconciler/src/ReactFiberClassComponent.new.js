@@ -804,6 +804,7 @@ function callComponentWillReceiveProps(
 }
 
 // Invokes the mount life-cycles on a previously never rendered instance.
+// 触发生命周期函数
 function mountClassInstance(
   workInProgress: Fiber,
   ctor: any,
@@ -814,11 +815,13 @@ function mountClassInstance(
     checkClassInstance(workInProgress, ctor, newProps);
   }
 
+  // class的实例
   const instance = workInProgress.stateNode;
   instance.props = newProps;
   instance.state = workInProgress.memoizedState;
   instance.refs = emptyRefsObject;
 
+  // 初始化updateQueue
   initializeUpdateQueue(workInProgress);
 
   const contextType = ctor.contextType;

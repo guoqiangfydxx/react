@@ -1681,6 +1681,7 @@ function workLoopConcurrent() {
   }
 }
 
+// 最终同步或者异步的循环又全部都走进了这个函数之中
 function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't
@@ -1696,7 +1697,7 @@ function performUnitOfWork(unitOfWork: Fiber): void {
   } else {
     next = beginWork(current, unitOfWork, subtreeRenderLanes);
   }
-
+ 
   resetCurrentDebugFiberInDEV();
   unitOfWork.memoizedProps = unitOfWork.pendingProps;
   if (next === null) {
@@ -2091,6 +2092,7 @@ function commitRootImpl(root, renderPriorityLevel) {
       rootCommittingMutationOrLayoutEffects = root;
     }
 
+    // 1. 上面的阶段就是before muation阶段
     // The next phase is the mutation phase, where we mutate the host tree.
     nextEffect = firstEffect;
     do {
@@ -2123,16 +2125,19 @@ function commitRootImpl(root, renderPriorityLevel) {
       afterActiveInstanceBlur();
     }
     resetAfterCommit(root.containerInfo);
+    // 2. 上面的阶段就是mutation，可见这个阶段主要的函数就是commitMutationEffects
 
     // The work-in-progress tree is now the current tree. This must come after
     // the mutation phase, so that the previous tree is still current during
     // componentWillUnmount, but before the layout phase, so that the finished
     // work is current during componentDidMount/Update.
+    // workInProgress Fiber树在commit阶段完成渲染后会变为current Fiber树。这行代码的作用就是切换fiberRootNode指向的current Fiber树。
     root.current = finishedWork;
 
     // The next phase is the layout phase, where we call effects that read
     // the host tree after it's been mutated. The idiomatic use case for this is
     // layout, but class component lifecycles also fire here for legacy reasons.
+    // 第三阶段layout阶段
     nextEffect = firstEffect;
     do {
       if (__DEV__) {
@@ -2315,6 +2320,7 @@ function commitBeforeMutationEffects() {
   while (nextEffect !== null) {
     const current = nextEffect.alternate;
 
+    // 1. 处理dom节点删除或者渲染之后的autoFocus，blur逻辑
     if (!shouldFireAfterActiveInstanceBlur && focusedInstanceHandle !== null) {
       if ((nextEffect.flags & Deletion) !== NoFlags) {
         if (doesFiberContain(nextEffect, focusedInstanceHandle)) {
@@ -2337,7 +2343,7 @@ function commitBeforeMutationEffects() {
     const flags = nextEffect.flags;
     if ((flags & Snapshot) !== NoFlags) {
       setCurrentDebugFiberInDEV(nextEffect);
-
+      // 2. 针对class组件调用getSnapshotBeforeUpdate这个生命周期方法，然后将返回的值挂载在一个变量上，等待componentDidUpdate生命周期的时候作为第三个参数传入进去
       commitBeforeMutationEffectOnFiber(current, nextEffect);
 
       resetCurrentDebugFiberInDEV();
@@ -2348,6 +2354,7 @@ function commitBeforeMutationEffects() {
       if (!rootDoesHavePassiveEffects) {
         rootDoesHavePassiveEffects = true;
         scheduleCallback(NormalSchedulerPriority, () => {
+          // 3. 调用useEffect
           flushPassiveEffects();
           return null;
         });
@@ -2365,10 +2372,12 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
 
     const flags = nextEffect.flags;
 
+    // 根据 ContentReset effectTag重置文字节点
     if (flags & ContentReset) {
       commitResetTextContent(nextEffect);
     }
 
+    // 更新ref
     if (flags & Ref) {
       const current = nextEffect.alternate;
       if (current !== null) {
@@ -2387,6 +2396,7 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
     // updates, and deletions. To avoid needing to add a case for every possible
     // bitmap value, we remove the secondary effects from the effect tag and
     // switch on that value.
+    // 根据 effectTag 分别处理
     const primaryFlags = flags & (Placement | Update | Deletion | Hydrating);
     switch (primaryFlags) {
       case Placement: {
@@ -2459,6 +2469,7 @@ function commitLayoutEffects(root: FiberRoot, committedLanes: Lanes) {
 
     const flags = nextEffect.flags;
 
+    // 调用生命周期钩子和hook,这里主要就是做了这么一件事情
     if (flags & (Update | Callback)) {
       const current = nextEffect.alternate;
       commitLayoutEffectOnFiber(root, current, nextEffect, committedLanes);
@@ -2574,6 +2585,7 @@ function flushPassiveEffectsImpl() {
     return false;
   }
 
+  // rootWithPendingPassiveEffects--从这个全局变量上可以获取到对应的effectList列表
   const root = rootWithPendingPassiveEffects;
   const lanes = pendingPassiveEffectsLanes;
   rootWithPendingPassiveEffects = null;
@@ -2610,6 +2622,7 @@ function flushPassiveEffectsImpl() {
   // Layout effects have the same constraint.
 
   // First pass: Destroy stale passive effects.
+  // 1.调用该useEffect在上一次render时的销毁函数
   const unmountEffects = pendingPassiveHookEffectsUnmount;
   pendingPassiveHookEffectsUnmount = [];
   for (let i = 0; i < unmountEffects.length; i += 2) {
@@ -2670,6 +2683,7 @@ function flushPassiveEffectsImpl() {
     }
   }
   // Second pass: Create new passive effects.
+  // 2.调用该useEffect在本次render时的回调函数
   const mountEffects = pendingPassiveHookEffectsMount;
   pendingPassiveHookEffectsMount = [];
   for (let i = 0; i < mountEffects.length; i += 2) {
@@ -2762,6 +2776,7 @@ function flushPassiveEffectsImpl() {
 
   executionContext = prevExecutionContext;
 
+  // 3.执行剩下的同步任务
   flushSyncCallbackQueue();
 
   // If additional passive effects were scheduled, increment a counter. If this

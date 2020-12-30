@@ -612,6 +612,7 @@ export function diffProperties(
   let nextProps: Object;
   switch (tag) {
     case 'input':
+      // 结合传入的props和一些默认的属性返回新的props
       lastProps = ReactDOMInputGetHostProps(domElement, lastRawProps);
       nextProps = ReactDOMInputGetHostProps(domElement, nextRawProps);
       updatePayload = [];
@@ -649,6 +650,8 @@ export function diffProperties(
   let propKey;
   let styleName;
   let styleUpdates = null;
+  // 这里针对新老props都做了一层遍历，分别做了不同的处理
+  // 综合来看主要是对老的props进行清理，将对应的props和style都清空了
   for (propKey in lastProps) {
     if (
       nextProps.hasOwnProperty(propKey) ||
@@ -658,6 +661,7 @@ export function diffProperties(
       continue;
     }
     if (propKey === STYLE) {
+      // 先将老的props全都置为空
       const lastStyle = lastProps[propKey];
       for (styleName in lastStyle) {
         if (lastStyle.hasOwnProperty(styleName)) {
@@ -686,6 +690,7 @@ export function diffProperties(
     } else {
       // For all other deleted properties we add it to the queue. We use
       // the allowed property list in the commit phase instead.
+      // 剩下的是props全都手动置为null
       (updatePayload = updatePayload || []).push(propKey, null);
     }
   }
@@ -743,6 +748,7 @@ export function diffProperties(
         styleUpdates = nextProp;
       }
     } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
+      // dangerouslySetInnerHTML属性,如果新老属性不一样的话就将其塞入updatePayload数组中
       const nextHtml = nextProp ? nextProp[HTML] : undefined;
       const lastHtml = lastProp ? lastProp[HTML] : undefined;
       if (nextHtml != null) {

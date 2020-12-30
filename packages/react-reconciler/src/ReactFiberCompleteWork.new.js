@@ -217,6 +217,7 @@ if (supportsMutation) {
     // TODO: Experiencing an error where oldProps is null. Suggests a host
     // component is hitting the resume path. Figure out why. Possibly
     // related to `hidden`.
+    // 返回来一个数组, [key, value],key为属性名，value为新的属性值，需要更新的属性值
     const updatePayload = prepareUpdate(
       instance,
       type,
@@ -640,6 +641,7 @@ function cutOffTailIfNeeded(
   }
 }
 
+// 从下面可以看出这个函数针对我们常见的函数组件和class组件并没有太多的处理，而是直接就返回来null，这个函数中主要是针对HostComponent来做处理的
 function completeWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -744,7 +746,7 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
-          // 为fiber节点创建对应的dom节点
+          // 为fiber节点创建对应的dom节点,调用了createElement用来创建实际的dom节点
           const instance = createInstance(
             type,
             newProps,
@@ -760,6 +762,7 @@ function completeWork(
           // Certain renderers require commit-time effects for initial mount.
           // (eg DOM renderer supports auto-focus for certain elements).
           // Make sure such renderers get scheduled for later work.
+          // 初始化dom对象的事件监听器和内部属性
           if (
             finalizeInitialChildren(
               instance,

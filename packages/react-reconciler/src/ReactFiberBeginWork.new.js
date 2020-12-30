@@ -768,6 +768,7 @@ function updateFunctionComponent(
     );
   }
 
+  // 如果current存在，并且没有接收到任何的更新，那么就直接复用之前的fiber节点
   if (current !== null && !didReceiveUpdate) {
     bailoutHooks(current, workInProgress, renderLanes);
     return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes);
@@ -828,6 +829,7 @@ function updateClassComponent(
       workInProgress.flags |= Placement;
     }
     // In the initial pass we might need to construct the instance.
+    // 拿到class实例
     constructClassInstance(workInProgress, Component, nextProps);
     mountClassInstance(workInProgress, Component, nextProps, renderLanes);
     shouldUpdate = true;

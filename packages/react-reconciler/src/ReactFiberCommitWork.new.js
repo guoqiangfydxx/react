@@ -330,6 +330,7 @@ function commitBeforeMutationLifeCycles(
   );
 }
 
+// 这个函数主要是调用useLayoutEffect的销毁函数
 function commitHookEffectListUnmount(tag: number, finishedWork: Fiber) {
   const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
   const lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
@@ -503,9 +504,11 @@ function commitLifeCycles(
           recordLayoutEffectDuration(finishedWork);
         }
       } else {
+        // 执行useLayoutEffect的回调函数， useEffect是在before mutation阶段先被调度，而这里才被真正的执行
         commitHookEffectListMount(HookLayout | HookHasEffect, finishedWork);
       }
 
+      // 调度useEffect的销毁函数与回调函数
       schedulePassiveEffects(finishedWork);
       return;
     }
@@ -513,6 +516,7 @@ function commitLifeCycles(
       const instance = finishedWork.stateNode;
       if (finishedWork.flags & Update) {
         if (current === null) {
+          // mount的情况--执行componentDidMount方法
           // We could update instance props and state here,
           // but instead we rely on them being set during last render.
           // TODO: revisit this when we implement resuming.
@@ -558,6 +562,7 @@ function commitLifeCycles(
             instance.componentDidMount();
           }
         } else {
+          // update的情况---执行componentDidUpdate方法
           const prevProps =
             finishedWork.elementType === finishedWork.type
               ? current.memoizedProps
@@ -654,6 +659,7 @@ function commitLifeCycles(
         // We could update instance props and state here,
         // but instead we rely on them being set during last render.
         // TODO: revisit this when we implement resuming.
+        // 将updateQueue上面的回调函数执行一下,比如说this.setState如果赋值了第二个参数回调函数
         commitUpdateQueue(finishedWork, updateQueue, instance);
       }
       return;
@@ -934,6 +940,7 @@ function commitUnmount(
     case MemoComponent:
     case SimpleMemoComponent: {
       const updateQueue: FunctionComponentUpdateQueue | null = (current.updateQueue: any);
+      // 调用useEffect的销毁函数
       if (updateQueue !== null) {
         const lastEffect = updateQueue.lastEffect;
         if (lastEffect !== null) {
@@ -966,9 +973,11 @@ function commitUnmount(
       return;
     }
     case ClassComponent: {
+      // 解绑ref
       safelyDetachRef(current);
       const instance = current.stateNode;
       if (typeof instance.componentWillUnmount === 'function') {
+        // 调用组件卸载生命周期方法
         safelyCallComponentWillUnmount(current, instance);
       }
       return;
@@ -1248,6 +1257,7 @@ function commitPlacement(finishedWork: Fiber): void {
     parentFiber.flags &= ~ContentReset;
   }
 
+  // 获取fiber的dom兄弟节点
   const before = getHostSibling(finishedWork);
   // We only have the top Fiber that was inserted but we need to recurse down its
   // children to find all the terminal nodes.
@@ -1476,9 +1486,13 @@ function commitDeletion(
   if (supportsMutation) {
     // Recursively delete all host nodes from the parent.
     // Detach refs and call componentWillUnmount() on the whole subtree.
+    // 递归调用Fiber节点及其子孙Fiber节点中fiber.tag为ClassComponent的componentWillUnmount (opens new window)生命周期钩子，从页面移除Fiber节点对应DOM节点
+    // 解绑ref
+    // 调度useEffect的销毁函数
     unmountHostComponents(finishedRoot, current, renderPriorityLevel);
   } else {
     // Detach refs and call componentWillUnmount() on the whole subtree.
+    // 递归的卸载整个子树，针对函数组件和class组件分别有不同的处理
     commitNestedUnmounts(finishedRoot, current, renderPriorityLevel);
   }
   const alternate = current.alternate;
@@ -1488,6 +1502,7 @@ function commitDeletion(
   }
 }
 
+// 这里我们主要关注两种类型：function和hostComponent
 function commitWork(current: Fiber | null, finishedWork: Fiber): void {
   if (!supportsMutation) {
     switch (finishedWork.tag) {
@@ -1595,6 +1610,7 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
         const updatePayload: null | UpdatePayload = (finishedWork.updateQueue: any);
         finishedWork.updateQueue = null;
         if (updatePayload !== null) {
+          // 这个函数最终调用了updateProperties这个函数，最终将全部的diff全部实现在了真实的dom上面
           commitUpdate(
             instance,
             updatePayload,
